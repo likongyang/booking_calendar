@@ -15,7 +15,7 @@ export default function HomePage() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-lg font-bold text-white tracking-tight">FPLC Booking</h1>
+                <h1 className="text-lg font-bold text-white tracking-tight">Burkart Lab - FPLC Booking</h1>
                 <p className="text-xs text-slate-400 -mt-0.5">Device Reservation System</p>
               </div>
             </div>
