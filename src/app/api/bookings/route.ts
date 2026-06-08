@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { hashAccessKey } from '@/lib/hash';
+import { TABLE_BOOKINGS, TABLE_BOOKING_EVENT } from '@/lib/tables';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 
@@ -22,7 +24,7 @@ export async function GET(request: NextRequest) {
   const endOfMonth = dayjs.utc(`${month}-01`).endOf('month').toISOString();
 
   const { data, error } = await supabase
-    .from('bookings')
+    .from(TABLE_BOOKINGS)
     .select('*')
     .eq('device_id', device)
     .eq('is_deleted', false)
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
 
   // Conflict check: same device, not deleted, overlapping time range
   const { data: conflicts, error: conflictError } = await supabase
-    .from('bookings')
+    .from(TABLE_BOOKINGS)
     .select('id, user, start_time, end_time')
     .eq('device_id', device_id)
     .eq('is_deleted', false)
@@ -78,9 +80,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Hash the access key before storing
+  const hashedKey = hashAccessKey(access_key);
+
   // Insert booking
   const { data: booking, error: insertError } = await supabase
-    .from('bookings')
+    .from(TABLE_BOOKINGS)
     .insert({
       device_id,
       user,
@@ -90,7 +95,7 @@ export async function POST(request: NextRequest) {
       model,
       notes: notes || null,
       stored_in,
-      access_key,
+      access_key: hashedKey,
     })
     .select()
     .single();
@@ -100,13 +105,17 @@ export async function POST(request: NextRequest) {
   }
 
   // Write event log
-  await supabase.from('booking_events').insert({
+  const { error: eventError } = await supabase.from(TABLE_BOOKING_EVENT).insert({
     booking_id: booking.id,
     event_type: 'create',
     device_id,
     user,
     operated_at: new Date().toISOString(),
   });
+
+  if (eventError) {
+    console.error('[booking_event] Failed to write create event:', eventError.message, eventError.details, eventError.hint);
+  }
 
   return NextResponse.json({ data: booking }, { status: 201 });
 }

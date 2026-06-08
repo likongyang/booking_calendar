@@ -107,19 +107,20 @@ export default function CalendarView() {
         <div className="fc-month-event">
           <div className="fc-month-event-time">{startLocal}–{endLocal}</div>
           <div className="fc-month-event-user">{b.user}</div>
-          <div className="fc-month-event-column">{b.column}</div>
+          <div className="fc-month-event-column">{b.column} - {b.model}</div>
           <div className="fc-month-event-stored">{b.stored_in}</div>
         </div>
       );
     }
 
-    // Week / Day views — keep default but add column info
+    // Week / Day views — show column, stored_in, and notes
     return (
       <div className="fc-custom-event">
         <div className="fc-event-time-custom">{startLocal}–{endLocal}</div>
         <div className="fc-event-title-custom">{b.user}</div>
-        <div className="fc-event-column-custom">{b.column}</div>
+        <div className="fc-event-column-custom">{b.column} - {b.model}</div>
         <div className="fc-event-stored-custom">{b.stored_in}</div>
+        {b.notes && <div className="fc-event-notes-custom">{b.notes}</div>}
       </div>
     );
   };

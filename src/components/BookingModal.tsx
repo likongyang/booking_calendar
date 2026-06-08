@@ -396,10 +396,14 @@ export default function BookingModal({
               value={notes}
               onChange={e => setNotes(e.target.value)}
               required={notesRequired}
+              maxLength={150}
               rows={3}
               className={`${inputCls} resize-none`}
               placeholder={notesRequired ? 'Required — explain extended use...' : 'Optional notes...'}
             />
+            <p className={`mt-1 text-xs ${notes.length >= 140 ? 'text-amber-400' : 'text-slate-500'}`}>
+              {notes.length}/150 characters
+            </p>
           </div>
 
           {/* Access Key */}

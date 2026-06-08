@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { verifyAccessKey } from '@/lib/hash';
+import { TABLE_BOOKINGS, TABLE_BOOKING_EVENT } from '@/lib/tables';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -15,7 +17,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
   // Verify access_key
   const { data: existing, error: fetchError } = await supabase
-    .from('bookings')
+    .from(TABLE_BOOKINGS)
     .select('*')
     .eq('id', id)
     .eq('is_deleted', false)
@@ -25,7 +27,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
   }
 
-  if (existing.access_key !== access_key) {
+  if (!verifyAccessKey(access_key, existing.access_key)) {
     return NextResponse.json({ error: 'Invalid access key' }, { status: 403 });
   }
 
@@ -35,7 +37,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   const checkEndTime = end_time || existing.end_time;
 
   const { data: conflicts, error: conflictError } = await supabase
-    .from('bookings')
+    .from(TABLE_BOOKINGS)
     .select('id, user, start_time, end_time')
     .eq('device_id', checkDeviceId)
     .eq('is_deleted', false)
@@ -73,8 +75,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   if (notes !== undefined) updateData.notes = notes;
   if (stored_in !== undefined) updateData.stored_in = stored_in;
 
+  // access_key is never updated — it is set once at creation time
+
   const { data: updated, error: updateError } = await supabase
-    .from('bookings')
+    .from(TABLE_BOOKINGS)
     .update(updateData)
     .eq('id', id)
     .select()
@@ -85,13 +89,17 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   }
 
   // Write event log
-  await supabase.from('booking_events').insert({
+  const { error: eventError } = await supabase.from(TABLE_BOOKING_EVENT).insert({
     booking_id: id,
     event_type: 'update',
     device_id: updated.device_id,
     user: updated.user,
     operated_at: new Date().toISOString(),
   });
+
+  if (eventError) {
+    console.error('[booking_event] Failed to write update event:', eventError.message, eventError.details, eventError.hint);
+  }
 
   return NextResponse.json({ data: updated });
 }
@@ -108,7 +116,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
   // Verify access_key
   const { data: existing, error: fetchError } = await supabase
-    .from('bookings')
+    .from(TABLE_BOOKINGS)
     .select('*')
     .eq('id', id)
     .eq('is_deleted', false)
@@ -118,13 +126,13 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
   }
 
-  if (existing.access_key !== access_key) {
+  if (!verifyAccessKey(access_key, existing.access_key)) {
     return NextResponse.json({ error: 'Invalid access key' }, { status: 403 });
   }
 
   // Soft delete
   const { error: deleteError } = await supabase
-    .from('bookings')
+    .from(TABLE_BOOKINGS)
     .update({ is_deleted: true })
     .eq('id', id);
 
@@ -133,13 +141,17 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   }
 
   // Write event log
-  await supabase.from('booking_events').insert({
+  const { error: eventError } = await supabase.from(TABLE_BOOKING_EVENT).insert({
     booking_id: id,
     event_type: 'delete',
     device_id: existing.device_id,
     user: existing.user,
     operated_at: new Date().toISOString(),
   });
+
+  if (eventError) {
+    console.error('[booking_event] Failed to write delete event:', eventError.message, eventError.details, eventError.hint);
+  }
 
   return NextResponse.json({ message: 'Booking deleted successfully' });
 }

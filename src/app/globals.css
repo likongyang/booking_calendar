@@ -331,6 +331,16 @@ body {
   text-overflow: ellipsis;
 }
 
+.fc-event-notes-custom {
+  font-size: 0.6rem;
+  font-weight: 400;
+  opacity: 0.6;
+  font-style: italic;
+  margin-top: 2px;
+  white-space: normal;
+  word-break: break-word;
+}
+
 /* Grid borders */
 .fc td,
 .fc th {
