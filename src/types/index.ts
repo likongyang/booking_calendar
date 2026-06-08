@@ -36,8 +36,8 @@ export interface Booking {
   stored_in: StoredInType;   // Column storage solution
   is_deleted: boolean;       // Soft delete flag, default false
   access_key: string;        // Key required to modify/delete
-  created_at: string;        // Auto-populated creation timestamp
-  updated_at: string;        // Auto-maintained update timestamp
+  create_at: string | null;  // ISO 8601 timestamp of first creation
+  update_at: string | null;  // ISO 8601 timestamp of last modification
 }
 
 /** Booking event record — matches the `booking_events` table in Supabase */

@@ -76,6 +76,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   if (stored_in !== undefined) updateData.stored_in = stored_in;
 
   // access_key is never updated — it is set once at creation time
+  updateData.update_at = new Date().toISOString();
 
   const { data: updated, error: updateError } = await supabase
     .from(TABLE_BOOKINGS)
@@ -133,7 +134,10 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   // Soft delete
   const { error: deleteError } = await supabase
     .from(TABLE_BOOKINGS)
-    .update({ is_deleted: true })
+    .update({ 
+      is_deleted: true,
+      update_at: new Date().toISOString()
+    })
     .eq('id', id);
 
   if (deleteError) {

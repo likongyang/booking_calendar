@@ -96,6 +96,8 @@ export async function POST(request: NextRequest) {
       notes: notes || null,
       stored_in,
       access_key: hashedKey,
+      create_at: new Date().toISOString(),
+      update_at: new Date().toISOString(),
     })
     .select()
     .single();
