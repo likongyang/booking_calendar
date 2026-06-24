@@ -8,28 +8,39 @@ import utc from 'dayjs/plugin/utc';
 dayjs.extend(utc);
 
 // GET /api/bookings?device=LEFT-FPLC&month=2026-06
+// OR GET /api/bookings?device=LEFT-FPLC&start=2026-06-29T00:00:00.000Z&end=2026-07-06T00:00:00.000Z
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const device = searchParams.get('device');
   const month = searchParams.get('month'); // format: YYYY-MM
+  const start = searchParams.get('start');
+  const end = searchParams.get('end');
 
-  if (!device || !month) {
+  if (!device || (!month && !(start && end))) {
     return NextResponse.json(
-      { error: 'Missing required parameters: device, month' },
+      { error: 'Missing required parameters: device, and either month or (start and end)' },
       { status: 400 }
     );
   }
 
-  const startOfMonth = dayjs.utc(`${month}-01`).startOf('month').toISOString();
-  const endOfMonth = dayjs.utc(`${month}-01`).endOf('month').toISOString();
+  let queryStart: string;
+  let queryEnd: string;
+
+  if (start && end) {
+    queryStart = dayjs(start).toISOString();
+    queryEnd = dayjs(end).toISOString();
+  } else {
+    queryStart = dayjs.utc(`${month}-01`).startOf('month').toISOString();
+    queryEnd = dayjs.utc(`${month}-01`).endOf('month').toISOString();
+  }
 
   const { data, error } = await supabase
     .from(TABLE_BOOKINGS)
     .select('*')
     .eq('device_id', device)
     .eq('is_deleted', false)
-    .gte('start_time', startOfMonth)
-    .lte('start_time', endOfMonth)
+    .gte('start_time', queryStart)
+    .lte('start_time', queryEnd)
     .order('start_time', { ascending: true });
 
   if (error) {

@@ -5,7 +5,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import type { EventClickArg, DateSelectArg, EventContentArg } from '@fullcalendar/core';
+import type { EventClickArg, DateSelectArg, EventContentArg, DatesSetArg } from '@fullcalendar/core';
 import dayjs from 'dayjs';
 import type { Booking } from '@/types';
 import BookingModal from './BookingModal';
@@ -19,16 +19,16 @@ export default function CalendarView() {
   const [currentDevice, setCurrentDevice] = useState<string>('LEFT-FPLC');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState(dayjs().format('YYYY-MM'));
+  const [currentRange, setCurrentRange] = useState<{ start: string; end: string } | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [selectedRange, setSelectedRange] = useState<{ start: Date; end: Date } | null>(null);
   const calendarRef = useRef<FullCalendar>(null);
 
-  const fetchBookings = async (device: string, month: string) => {
+  const fetchBookings = async (device: string, start: string, end: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/bookings?device=${device}&month=${month}`);
+      const res = await fetch(`/api/bookings?device=${device}&start=${start}&end=${end}`);
       const json = await res.json();
       if (json.data) {
         setBookings(json.data);
@@ -41,8 +41,11 @@ export default function CalendarView() {
   };
 
   useEffect(() => {
-    fetchBookings(currentDevice, currentMonth);
-  }, [currentDevice, currentMonth]);
+    if (currentRange) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchBookings(currentDevice, currentRange.start, currentRange.end);
+    }
+  }, [currentDevice, currentRange]);
 
   const handleDateSelect = (selectInfo: DateSelectArg) => {
     setSelectedBooking(null);
@@ -59,11 +62,11 @@ export default function CalendarView() {
     }
   };
 
-  const handleDatesSet = (dateInfo: { start: Date }) => {
-    const newMonth = dayjs(dateInfo.start).add(7, 'day').format('YYYY-MM');
-    if (newMonth !== currentMonth) {
-      setCurrentMonth(newMonth);
-    }
+  const handleDatesSet = (dateInfo: DatesSetArg) => {
+    setCurrentRange({
+      start: dateInfo.start.toISOString(),
+      end: dateInfo.end.toISOString(),
+    });
   };
 
   const handleModalClose = () => {
@@ -74,7 +77,9 @@ export default function CalendarView() {
 
   const handleBookingSuccess = () => {
     handleModalClose();
-    fetchBookings(currentDevice, currentMonth);
+    if (currentRange) {
+      fetchBookings(currentDevice, currentRange.start, currentRange.end);
+    }
   };
 
   const calendarEvents = bookings.map(b => ({
