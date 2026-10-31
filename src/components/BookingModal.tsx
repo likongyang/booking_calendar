@@ -18,6 +18,7 @@ const COLUMN_OPTIONS = [
   'Hiload 16/600 superdex 75 pg',
   'suprose6 increase',
   'S200 increase',
+  'S75 increase',
   'Desalting column',
 ];
 
@@ -100,6 +101,7 @@ export default function BookingModal({
     'Hi-trapQ-5 mL/1 mL',
     'suprose6 increase',
     'S200 increase',
+    'S75 increase',
     'Desalting column',
   ].includes(column);
 
