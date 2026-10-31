@@ -9,6 +9,7 @@ export type ColumnType =
   | 'Hiload 16/600 superdex 75 pg'
   | 'suprose6 increase'
   | 'S200 increase'
+  | 'S75 increase'
   | 'Desalting column';
 
 /** Run model options */
